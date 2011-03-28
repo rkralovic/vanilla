@@ -174,12 +174,15 @@ public class PlaybackActivity extends Activity implements Handler.Callback, View
 	static final int MENU_PLAYBACK = 5;
 	static final int MENU_REPEAT = 6;
 	static final int MENU_SEARCH = 7;
+	
+	static final int MENU_SHUFFLE_ALBUM = 8;
 
 	@Override
 	public boolean onCreateOptionsMenu(Menu menu)
 	{
 		menu.add(0, MENU_PREFS, 0, R.string.settings).setIcon(android.R.drawable.ic_menu_preferences);
 		menu.add(0, MENU_SHUFFLE, 0, R.string.shuffle_enable).setIcon(R.drawable.ic_menu_shuffle);
+		menu.add(0, MENU_SHUFFLE_ALBUM, 0 , R.string.shuffle_album_enable).setIcon(R.drawable.ic_menu_shuffle_album);
 		menu.add(0, MENU_REPEAT, 0, R.string.repeat_enable).setIcon(R.drawable.ic_menu_refresh);
 		menu.add(0, MENU_QUIT, 0, R.string.quit).setIcon(android.R.drawable.ic_menu_close_clear_cancel);
 		return true;

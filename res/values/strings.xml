@@ -27,8 +27,11 @@
 	<string name="display_mode">Display Mode</string>
 	<string name="shuffle_enable">Enable Shuffle</string>
 	<string name="shuffle_disable">Disable Shuffle</string>
+	<string name="shuffle_album_enable">Enable album shuffle</string>
 	<string name="shuffle_enabling">Shuffle enabled for newly added songs</string>
 	<string name="shuffle_disabling">Shuffle disabled</string>
+	<string name="shuffle_album_enabling">album shuffle enabled for newly added songs</string>
+	<string name="shuffle_album_disabling">album shuffle disabled</string>
 	<string name="repeat_enable">Enable Repeat</string>
 	<string name="repeat_disable">Disable Repeat</string>
 	<string name="repeat_enabling">Repeat enabled. The current song and any songs you have added after it will be repeated.</string>
