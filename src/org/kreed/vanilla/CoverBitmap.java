@@ -114,7 +114,7 @@ public final class CoverBitmap {
 		if (song == null || size < 1)
 			return null;
 
-		Bitmap cover = song.getCover();
+		Bitmap cover = getSongCoverArtBitmap(song);
 		if (cover == null)
 			return null;
 
@@ -152,7 +152,7 @@ public final class CoverBitmap {
 		paint.setTextSize(textSize);
 
 		String title = song.title == null ? "" : song.title;
-		Bitmap cover = song.getCover();
+		Bitmap cover = getSongCoverArtBitmap(song);
 
 		int titleWidth = (int)paint.measureText(title);
 
@@ -183,6 +183,20 @@ public final class CoverBitmap {
 		return bitmap;
 	}
 
+	static final private boolean shouldShowCoverArt()
+	{
+		return false;
+	}
+	
+	static final private Bitmap getSongCoverArtBitmap(Song song)
+	{
+		if (!shouldShowCoverArt())
+			return null;
+		else
+			return song.getCover();
+	}
+	
+
 	/**
 	 * Create a normal image, displaying cover art with the song title, album
 	 * and artist overlaid in a box in the center.
@@ -210,7 +224,12 @@ public final class CoverBitmap {
 		String title = song.title == null ? "" : song.title;
 		String album = song.album == null ? "" : song.album;
 		String artist = song.artist == null ? "" : song.artist;
-		Bitmap cover = song.getCover();
+		Bitmap cover;
+		
+		if (!shouldShowCoverArt())
+			cover = null;
+		else
+			cover = getSongCoverArtBitmap(song);
 
 		int titleSize = TEXT_SIZE_BIG;
 		int subSize = TEXT_SIZE;
@@ -325,7 +344,7 @@ public final class CoverBitmap {
 		String title = song.title == null ? "" : song.title;
 		String album = song.album == null ? "" : song.album;
 		String artist = song.artist == null ? "" : song.artist;
-		Bitmap cover = song.getCover();
+		Bitmap cover = getSongCoverArtBitmap(song);
 
 		int textSize = TEXT_SIZE;
 		int padding = PADDING;
