@@ -594,6 +594,11 @@ public final class PlaybackService extends Service implements Handler.Callback, 
 	 * Move <code>delta</code> places away from the current song.
 	 */
 	public void setCurrentSong(int delta)
+        {
+                setCurrentSong( delta, (delta!=0) );
+        }
+
+	public void setCurrentSong(int delta, boolean isUserAction)
 	{
 		if (mMediaPlayer == null)
 			return;
@@ -624,7 +629,7 @@ public final class PlaybackService extends Service implements Handler.Callback, 
 			Log.e("VanillaMusic", "IOException", e);
 		}
 
-		if (delta != 0)
+		if (isUserAction)
 			userActionTriggered();
 
 		mHandler.sendEmptyMessage(PROCESS_SONG);
@@ -809,7 +814,7 @@ public final class PlaybackService extends Service implements Handler.Callback, 
 			toggleFlag(FLAG_PLAYING);
 			break;
 		case TRACK_CHANGED:
-			setCurrentSong(+1);
+			setCurrentSong(+1, false);
 			setFlag(FLAG_PLAYING);
 			break;
 		case RELEASE_WAKE_LOCK:
