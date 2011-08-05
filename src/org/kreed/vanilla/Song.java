@@ -34,6 +34,9 @@ import java.io.FileDescriptor;
 import java.io.FileNotFoundException;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 /**
  * Represents a Song backed by the MediaStore. Includes basic metadata and
@@ -53,7 +56,12 @@ public class Song implements Parcelable {
 	/**
 	 * A cache of randomly selected songs.
 	 */
-	private static final Song[] mRandomSongs = new Song[5];
+	private static ArrayList<Song> mRandomSongs = new ArrayList<Song>();
+	private static ArrayList<Long> mRandomSongIds = new ArrayList<Long>();
+	private static int mRandomSongIdx = -1;
+	private static int mRandomSongLastPopulatedIdx = -1;
+	private static int mMediaStoreSongCountCache = -1;
+	private static final int mRandomSongLastPopulationSize = 20;
 
 	private static final String[] FILLED_PROJECTION = {
 		MediaStore.Audio.Media._ID,
@@ -96,45 +104,122 @@ public class Song implements Parcelable {
 	 */
 	public int flags;
 
+	public static void onMediaStoreContentsChanged()
+	{
+		mMediaStoreSongCountCache = -1;
+		mRandomSongIdx = -1;
+	}
+	
+	public static int getMediaStoreSongCount()
+	{
+		if (mMediaStoreSongCountCache == -1) {
+			ContentResolver resolver = ContextApplication.getContext().getContentResolver();
+			Uri media = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI;
+			String selection = MediaStore.Audio.Media.IS_MUSIC + "!=0";
+			Cursor cursor = resolver.query(media, new String[] { MediaStore.Audio.Media._ID }, selection, null, null);
+	
+			mMediaStoreSongCountCache = cursor.getCount(); 
+		}
+		
+		return mMediaStoreSongCountCache;
+	}
+	
+	/**
+	 * @return true if it's possible to retrieve any songs, otherwise false. For example, false
+	 * could be returned if there are no songs in the library.
+	 */
+	public static boolean isSongAvailable()
+	{
+		return getMediaStoreSongCount() > 0;
+	}
+	
 	/**
 	 * Returns a song randomly selected from all the songs in the Android
 	 * MediaStore.
 	 */
 	public static Song randomSong()
 	{
-		Song[] songs = mRandomSongs;
-		// Checked for previously retrieved random songs.
-		for (int i = songs.length; --i != -1; ) {
-			if (songs[i] != null) {
-				Song song = songs[i];
-				songs[i] = null;
-				return song;
+		if (mRandomSongIdx == -1 || mRandomSongIdx == mRandomSongIds.size())
+		{
+			mRandomSongIds.clear();
+			
+			int mediaStoreSongCount = getMediaStoreSongCount();
+			mRandomSongIds.ensureCapacity(mediaStoreSongCount);
+			
+			ContentResolver resolver = ContextApplication.getContext().getContentResolver();
+			Uri media = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI;
+			String selection = MediaStore.Audio.Media.IS_MUSIC + "!=0";
+			Cursor cursor = resolver.query(media, new String[] { MediaStore.Audio.Media._ID }, selection, null, null);
+	
+			if (cursor != null) {
+				for (cursor.moveToFirst(); !cursor.isAfterLast(); cursor.moveToNext()) {
+					mRandomSongIds.add(new Long(cursor.getLong(0)));
+				}
+
+				Collections.shuffle(mRandomSongIds);
+				
+				cursor.close();
 			}
+			else {
+				return null;
+			}
+			
+			mRandomSongIdx = 0;
+			mRandomSongLastPopulatedIdx = -1;
 		}
+		
+		if (mRandomSongIdx > mRandomSongLastPopulatedIdx) {
+			mRandomSongs.clear();
+			mRandomSongs.ensureCapacity(mRandomSongLastPopulationSize);
+			
+			ContentResolver resolver = ContextApplication.getContext().getContentResolver();
+			Uri media = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI;
 
-		// We need to fetch more
-		ContentResolver resolver = ContextApplication.getContext().getContentResolver();
-		Uri media = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI;
-		String selection = MediaStore.Audio.Media.IS_MUSIC + "!=0";
-		Cursor cursor = resolver.query(media, FILLED_PROJECTION, selection, null, null);
+			List<Long> selectedIds = mRandomSongIds.subList(mRandomSongIdx, mRandomSongIdx + mRandomSongLastPopulationSize);
+			
+			StringBuilder selection = new StringBuilder("_ID IN (");
 
-		if (cursor != null) {
-			int count = cursor.getCount();
+			boolean first = true;
+			for (Long id : selectedIds) {
+				if (!first)
+					selection.append(",");
+				
+				first = false;
+				
+				selection.append(id.toString());
+			}
+
+			selection.append(")");
+			
+			Cursor cursor = resolver.query(media, FILLED_PROJECTION, selection.toString(), null, null);
+			
+			if (cursor == null) {
+				mRandomSongIdx = -1;
+				return null;
+			}
+			
+			long count = cursor.getCount();
 			if (count > 0) {
-				for (int i = songs.length; --i != -1; ) {		
-					if (cursor.moveToPosition(ContextApplication.getRandom().nextInt(count))) {
-						songs[i] = new Song(-1);
-						songs[i].populate(cursor);
-						songs[i].flags |= FLAG_RANDOM;
-					}
+				assert(count <= mRandomSongLastPopulationSize);
+				
+				for (cursor.moveToFirst(); !cursor.isAfterLast(); cursor.moveToNext()) {
+					Song newSong = new Song(-1);
+					newSong.populate(cursor);
+					newSong.flags |= FLAG_RANDOM;
+					mRandomSongs.add(newSong);
 				}
 			}
+			
 			cursor.close();
+			
+			mRandomSongLastPopulatedIdx = mRandomSongIdx + mRandomSongLastPopulationSize;  
 		}
 
-		Song song = songs[0];
-		songs[0] = null;
-		return song;
+		Song result = mRandomSongs.get(mRandomSongIdx % mRandomSongLastPopulationSize);
+		
+		++mRandomSongIdx;
+		
+		return result;
 	}
 
 	/**
@@ -145,7 +230,7 @@ public class Song implements Parcelable {
 	{
 		this.id = id;
 	}
-
+	
 	/**
 	 * Initialize the song with the specified id and flags. Call populate to
 	 * fill fields in the song.

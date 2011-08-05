@@ -23,8 +23,13 @@ import java.util.Random;
 
 import android.app.Activity;
 import android.app.Application;
+import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
+import android.database.ContentObserver;
+import android.os.Handler;
+import android.os.Message;
+import android.provider.MediaStore;
 
 /**
  * Subclass of Application that provides various static utility functions
@@ -40,6 +45,30 @@ public class ContextApplication extends Application {
 		mInstance = this;
 	}
 
+	public void onCreate()
+	{
+		ContentResolver resolver = getContext().getContentResolver();
+		
+		ContentObserver observer = 
+			new ContentObserver(
+				new Handler(
+					new Handler.Callback() {
+						public boolean handleMessage(Message arg0) {
+							Song.onMediaStoreContentsChanged();
+							return false;
+						}
+					}
+				)
+			)
+		{};
+	
+		resolver.registerContentObserver(
+				MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, 
+				true, 
+				observer
+		);
+	}
+	
 	/**
 	 * Returns a shared, application-wide Random instance.
 	 */
