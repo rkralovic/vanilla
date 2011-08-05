@@ -224,7 +224,7 @@ public class FullPlaybackActivity extends PlaybackActivity implements SeekBar.On
 			} 
 		}
 		
-		return false;
+		return super.onKeyDown(keyCode, event);
 	}
 	
 	@Override
